@@ -1,184 +1,122 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Dashboard from './components/Dashboard';
+// Fix: Create the main App component to manage state and render UI.
+import React, { useState, useCallback } from 'react';
 import AuthScreen from './components/AuthScreen';
+import Dashboard from './components/Dashboard';
 import { ToastContainer } from './components/Toast';
-import { User, Subscription, Toast, Category, BillingCycle } from './types';
-import { Icons } from './components/icons';
+import { Subscription, Toast } from './types';
 
-// Mock data for initial state
-const MOCK_SUBSCRIPTIONS: Omit<Subscription, 'id' | 'userId' | 'createdAt'>[] = [
-    { name: 'Netflix', cost: 649, billingCycle: BillingCycle.MONTHLY, renewalDate: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString(), category: Category.STREAMING, notes: 'Family plan', status: 'active' },
-    { name: 'Spotify', cost: 119, billingCycle: BillingCycle.MONTHLY, renewalDate: new Date(new Date().setDate(new Date().getDate() + 12)).toISOString(), category: Category.STREAMING, notes: '', status: 'active' },
-    { name: 'Figma', cost: 900, billingCycle: BillingCycle.MONTHLY, renewalDate: new Date(new Date().setDate(new Date().getDate() + 25)).toISOString(), category: Category.SAAS, notes: 'Pro plan for design work', status: 'active' },
-    { name: 'Gym Membership', cost: 2500, billingCycle: BillingCycle.QUARTERLY, renewalDate: new Date(new Date().setDate(new Date().getDate() + 40)).toISOString(), category: Category.HEALTH, notes: '', status: 'active' },
-    { name: 'Amazon Prime', cost: 1499, billingCycle: BillingCycle.YEARLY, renewalDate: new Date(new Date().setDate(new Date().getDate() + 150)).toISOString(), category: Category.ECOMMERCE, notes: 'Includes Prime Video', status: 'inactive' },
-];
+// Mock user type
+type User = {
+  id: string;
+  email: string;
+};
 
-
-const App: React.FC = () => {
+function App() {
+  // A real app would use a proper auth context/library
   const [user, setUser] = useState<User | null>(null);
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  useEffect(() => {
-    // Check for logged-in user in localStorage
-    const storedUser = localStorage.getItem('subsentry_session');
-    if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        loadSubscriptions(parsedUser.id);
-    } else {
-        setIsLoading(false);
-    }
+  // Mock subscriptions data
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([
+    { id: '1', name: 'Netflix', price: 15.49, billingCycle: 'monthly', nextPaymentDate: '2024-08-15', category: 'Streaming' },
+    { id: '2', name: 'Spotify', price: 9.99, billingCycle: 'monthly', nextPaymentDate: '2024-08-20', category: 'Music' },
+    { id: '3', name: 'Adobe Creative Cloud', price: 52.99, billingCycle: 'monthly', nextPaymentDate: '2024-08-01', category: 'Software' },
+    { id: '4', name: 'Amazon Prime', price: 139, billingCycle: 'yearly', nextPaymentDate: '2025-01-10', category: 'Shopping' },
+  ]);
+
+  const addToast = useCallback((message: string, type: 'success' | 'error') => {
+    const id = Date.now();
+    setToasts((prevToasts) => [...prevToasts, { id, message, type }]);
   }, []);
 
-  const addToast = (message: string, type: 'success' | 'error') => {
-    const newToast: Toast = { id: Date.now(), message, type };
-    setToasts(prev => [...prev, newToast]);
+  const removeToast = useCallback((id: number) => {
+    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id));
+  }, []);
+  
+  // Mock Auth functions
+  const handleLogin = async (email: string, password: string): Promise<void> => {
+    setIsLoading(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // In a real app, you'd validate credentials here
+      if (email && password) {
+        setUser({ id: '123', email });
+        addToast('Successfully logged in!', 'success');
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    } catch (error) {
+      addToast('Login failed. Please check your credentials.', 'error');
+      throw error; // re-throw to be caught by AuthScreen
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const removeToast = (id: number) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+  const handleSignup = async (email: string, password: string): Promise<void> => {
+    setIsLoading(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // In a real app, you'd create a new user here
+       if (email && password) {
+        setUser({ id: '123', email });
+        addToast('Account created successfully!', 'success');
+      } else {
+        throw new Error('Invalid input');
+      }
+    } catch (error) {
+      addToast('Signup failed. Please try again.', 'error');
+      throw error; // re-throw to be caught by AuthScreen
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const loadSubscriptions = (userId: string) => {
-      setIsLoading(true);
-      setTimeout(() => { // Simulate API call
-          const storedSubs = localStorage.getItem(`subsentry_subs_${userId}`);
-          if (storedSubs) {
-              setSubscriptions(JSON.parse(storedSubs));
-          } else {
-              // First time login for this user, seed with mock data
-              const initialSubs = MOCK_SUBSCRIPTIONS.map((sub, index) => ({
-                  ...sub,
-                  id: `sub_${Date.now()}_${index}`,
-                  userId,
-                  createdAt: new Date().toISOString(),
-              }));
-              setSubscriptions(initialSubs);
-              localStorage.setItem(`subsentry_subs_${userId}`, JSON.stringify(initialSubs));
-          }
-          setIsLoading(false);
-      }, 500);
-  };
-
-  const performLogin = (loggedInUser: User) => {
-      const sessionUser = { id: loggedInUser.id, email: loggedInUser.email };
-      setUser(sessionUser);
-      localStorage.setItem('subsentry_session', JSON.stringify(sessionUser));
-      loadSubscriptions(loggedInUser.id);
-  };
-  
-  const handleSignup = (email: string, password: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        setIsAuthLoading(true);
-        setTimeout(() => { // Simulate API call
-            const usersDb = JSON.parse(localStorage.getItem('subsentry_users_db') || '[]');
-            const existingUser = usersDb.find((u: User) => u.email === email);
-            if(existingUser) {
-                addToast('An account with this email already exists.', 'error');
-                setIsAuthLoading(false);
-                reject();
-                return;
-            }
-            const newUser: User = { id: `user_${Date.now()}`, email, password };
-            usersDb.push(newUser);
-            localStorage.setItem('subsentry_users_db', JSON.stringify(usersDb));
-
-            performLogin(newUser);
-            addToast('Account created successfully!', 'success');
-            setIsAuthLoading(false);
-            resolve();
-        }, 500);
-    });
-  };
-
-  const handleLogin = (email: string, password: string): Promise<void> => {
-     return new Promise((resolve, reject) => {
-        setIsAuthLoading(true);
-        setTimeout(() => { // Simulate API call
-            const usersDb = JSON.parse(localStorage.getItem('subsentry_users_db') || '[]');
-            const existingUser = usersDb.find((u: User) => u.email === email);
-            
-            if (!existingUser || existingUser.password !== password) {
-                addToast('Invalid email or password.', 'error');
-                setIsAuthLoading(false);
-                reject();
-                return;
-            }
-            
-            performLogin(existingUser);
-            addToast('Login successful!', 'success');
-            setIsAuthLoading(false);
-            resolve();
-        }, 500);
-     });
-  };
-
   const handleLogout = () => {
     setUser(null);
-    setSubscriptions([]);
-    localStorage.removeItem('subsentry_session');
     addToast('You have been logged out.', 'success');
   };
 
-  const updateSubscriptionsInStateAndStorage = useCallback((newSubs: Subscription[]) => {
-      if(user) {
-        setSubscriptions(newSubs);
-        localStorage.setItem(`subsentry_subs_${user.id}`, JSON.stringify(newSubs));
-      }
-  }, [user]);
-
-  const handleAddSubscription = (subData: Omit<Subscription, 'id' | 'userId' | 'createdAt'|'status'>) => {
-    if (!user) return;
-    const newSubscription: Subscription = {
-      ...subData,
-      id: `sub_${Date.now()}`,
-      userId: user.id,
-      createdAt: new Date().toISOString(),
-      status: 'active'
-    };
-    const updatedSubs = [...subscriptions, newSubscription];
-    updateSubscriptionsInStateAndStorage(updatedSubs);
-    addToast('Subscription added successfully!', 'success');
-  };
-
-  const handleUpdateSubscription = (updatedSub: Subscription) => {
-    const updatedSubs = subscriptions.map(s => s.id === updatedSub.id ? updatedSub : s);
-    updateSubscriptionsInStateAndStorage(updatedSubs);
-    addToast('Subscription updated!', 'success');
+  const handleSaveSubscription = (subscription: Subscription) => {
+    setSubscriptions(prev => {
+        const index = prev.findIndex(s => s.id === subscription.id);
+        if (index > -1) {
+            const newSubs = [...prev];
+            newSubs[index] = subscription;
+            return newSubs;
+        }
+        return [...prev, subscription];
+    });
+    addToast(`Subscription "${subscription.name}" saved.`, 'success');
   };
 
   const handleDeleteSubscription = (id: string) => {
-    const updatedSubs = subscriptions.filter(s => s.id !== id);
-    updateSubscriptionsInStateAndStorage(updatedSubs);
-    addToast('Subscription deleted.', 'success');
+    const subName = subscriptions.find(s => s.id === id)?.name;
+    setSubscriptions(prev => prev.filter(s => s.id !== id));
+    if (subName) {
+      addToast(`Subscription "${subName}" deleted.`, 'success');
+    }
   };
 
-  if (isLoading && !user) {
-      return <div className="min-h-screen bg-base-100 flex items-center justify-center"><Icons.Loader className="w-12 h-12 animate-spin text-brand-primary"/></div>;
-  }
-  
   return (
     <>
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       {user ? (
         <Dashboard
-          user={user}
-          subscriptions={subscriptions}
+          userEmail={user.email}
           onLogout={handleLogout}
-          onAddSubscription={handleAddSubscription}
-          onUpdateSubscription={handleUpdateSubscription}
-          onDeleteSubscription={handleDeleteSubscription}
-          isLoading={isLoading}
+          subscriptions={subscriptions}
+          onSave={handleSaveSubscription}
+          onDelete={handleDeleteSubscription}
         />
       ) : (
-        <AuthScreen onLogin={handleLogin} onSignup={handleSignup} isLoading={isAuthLoading} />
+        <AuthScreen onLogin={handleLogin} onSignup={handleSignup} isLoading={isLoading} />
       )}
     </>
   );
-};
+}
 
 export default App;
