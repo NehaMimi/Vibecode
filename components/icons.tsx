@@ -1,0 +1,42 @@
+
+import {
+  LogIn,
+  UserPlus,
+  Eye,
+  EyeOff,
+  LogOut,
+  PlusCircle,
+  Edit,
+  Trash2,
+  X,
+  ChevronDown,
+  AlertTriangle,
+  Bell,
+  Wallet,
+  Calendar,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Info
+} from 'lucide-react';
+
+export const Icons = {
+  LogIn,
+  UserPlus,
+  Eye,
+  EyeOff,
+  LogOut,
+  PlusCircle,
+  Edit,
+  Trash2,
+  X,
+  ChevronDown,
+  AlertTriangle,
+  Bell,
+  Wallet,
+  Calendar,
+  Loader: Loader2,
+  CheckCircle: CheckCircle2,
+  XCircle,
+  Info,
+};
