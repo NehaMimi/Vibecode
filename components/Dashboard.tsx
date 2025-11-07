@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { User, Subscription, Alert, SortOption, Category } from '../types';
 import { BillingCycle } from '../types';
@@ -87,7 +86,7 @@ const CategoryBreakdown: React.FC<{ subscriptions: Subscription[] }> = ({ subscr
             const monthlyCost = sub.billingCycle === BillingCycle.YEARLY ? sub.cost / 12 : sub.billingCycle === BillingCycle.QUARTERLY ? sub.cost / 3 : sub.cost;
             acc[sub.category] = (acc[sub.category] || 0) + monthlyCost;
             return acc;
-        }, {});
+        }, {} as Record<Category, number>);
         
         const total = Object.values(categoryTotals).reduce((sum, val) => sum + val, 0);
 
@@ -158,7 +157,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, subscriptions, onLogout, on
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
-  const [sortOption, setSortOption] = useState<SortOption>('renewalDate');
+  const [sortOption, setSortOption] = useState<SortOption>('renewalDate_asc');
   
   // --- MEMOIZED CALCULATIONS ---
   const { monthlyTotal, annualTotal, alerts, activeSubscriptions } = useMemo(() => {
@@ -196,12 +195,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, subscriptions, onLogout, on
 
     return subs.sort((a, b) => {
       switch (sortOption) {
-        case 'renewalDate':
+        case 'renewalDate_asc':
           return new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime();
-        case 'cost':
+        case 'cost_desc':
           return b.cost - a.cost;
-        case 'name':
+        case 'name_asc':
           return a.name.localeCompare(b.name);
+        case 'category_asc':
+          return a.category.localeCompare(b.category);
+        case 'category_desc':
+          return b.category.localeCompare(a.category);
         default:
           return 0;
       }

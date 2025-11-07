@@ -1,5 +1,5 @@
 {
-  "name": "copy-of-subsentry-subscription-tracker",
+  "name": "subsentry-subscription-tracker",
   "private": true,
   "version": "0.0.0",
   "type": "module",

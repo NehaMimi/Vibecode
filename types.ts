@@ -48,7 +48,12 @@ export interface Alert extends Subscription {
   level: 'red' | 'amber';
 }
 
-export type SortOption = 'renewalDate' | 'cost' | 'name';
+export type SortOption =
+  | 'renewalDate_asc'
+  | 'cost_desc'
+  | 'name_asc'
+  | 'category_asc'
+  | 'category_desc';
 
 export interface Toast {
     id: number;

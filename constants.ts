@@ -1,4 +1,3 @@
-
 import { Category, BillingCycle, SortOption } from './types';
 
 export const CATEGORIES: Category[] = [
@@ -17,9 +16,11 @@ export const BILLING_CYCLES: BillingCycle[] = [
 ];
 
 export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: 'renewalDate', label: 'Renewal Date' },
-  { value: 'cost', label: 'Cost' },
-  { value: 'name', label: 'Name (A-Z)' },
+  { value: 'renewalDate_asc', label: 'Renewal Date (Soonest)' },
+  { value: 'cost_desc', label: 'Cost (High to Low)' },
+  { value: 'name_asc', label: 'Name (A-Z)' },
+  { value: 'category_asc', label: 'Category (A-Z)' },
+  { value: 'category_desc', label: 'Category (Z-A)' },
 ];
 
 export const CATEGORY_COLORS: Record<Category, string> = {
