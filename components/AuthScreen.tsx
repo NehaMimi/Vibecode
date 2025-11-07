@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User } from '../types';
 import { Icons } from './icons';
@@ -123,7 +122,22 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, addToast }) => {
                 disabled={isLoading}
                 className="w-full flex items-center justify-center py-3 px-4 bg-brand-primary hover:bg-brand-secondary text-white font-semibold rounded-md transition duration-300 disabled:bg-opacity-50"
             >
-                {isLoading ? <Icons.Loader className="animate-spin" size={24} /> : (isLogin ? <><Icons.LogIn className="mr-2" size={20} /> Sign In</> : <><Icons.UserPlus className="mr-2" size={20} /> Create Account</>)}
+                {isLoading ? (
+                    <>
+                        <Icons.Loader className="animate-spin mr-2" size={20} />
+                        {isLogin ? 'Signing In...' : 'Creating Account...'}
+                    </>
+                ) : isLogin ? (
+                    <>
+                        <Icons.LogIn className="mr-2" size={20} />
+                        Sign In
+                    </>
+                ) : (
+                    <>
+                        <Icons.UserPlus className="mr-2" size={20} />
+                        Create Account
+                    </>
+                )}
             </button>
         </div>
         

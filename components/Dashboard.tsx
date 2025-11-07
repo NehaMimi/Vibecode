@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { User, Subscription, Alert, SortOption, Category } from '../types';
 import { BillingCycle } from '../types';
@@ -81,7 +82,6 @@ const AlertsSection: React.FC<{ alerts: Alert[] }> = ({ alerts }) => {
 const CategoryBreakdown: React.FC<{ subscriptions: Subscription[] }> = ({ subscriptions }) => {
     const breakdown = useMemo(() => {
         const activeSubs = subscriptions.filter(s => s.status === 'active');
-        // Fix: Explicitly type the accumulator for the reduce function to ensure correct type inference for categoryTotals.
         const categoryTotals = activeSubs.reduce<Record<Category, number>>((acc, sub) => {
             const monthlyCost = sub.billingCycle === BillingCycle.YEARLY ? sub.cost / 12 : sub.billingCycle === BillingCycle.QUARTERLY ? sub.cost / 3 : sub.cost;
             acc[sub.category] = (acc[sub.category] || 0) + monthlyCost;
@@ -121,9 +121,8 @@ const CategoryBreakdown: React.FC<{ subscriptions: Subscription[] }> = ({ subscr
     );
 };
 
-
-const SubscriptionCard: React.FC<{ sub: Subscription; onEdit: (sub: Subscription) => void; onDelete: (sub: Subscription) => void }> = ({ sub, onEdit, onDelete }) => (
-    <div className="bg-base-200 p-5 rounded-lg shadow-lg flex flex-col justify-between transition-transform hover:scale-105">
+const SubscriptionCard: React.FC<{ sub: Subscription; onEdit: (sub: Subscription) => void; onDelete: (sub: Subscription) => void; onStatusToggle: (sub: Subscription) => void; }> = ({ sub, onEdit, onDelete, onStatusToggle }) => (
+    <div className={`bg-base-200 p-5 rounded-lg shadow-lg flex flex-col justify-between transition-transform hover:scale-105 ${sub.status === 'inactive' ? 'opacity-60' : ''}`}>
         <div>
             <div className="flex justify-between items-start">
                 <h3 className="text-xl font-bold mb-2">{sub.name}</h3>
@@ -133,9 +132,19 @@ const SubscriptionCard: React.FC<{ sub: Subscription; onEdit: (sub: Subscription
             <p className="text-sm text-content-200 flex items-center mb-2"><Icons.Calendar size={14} className="mr-2"/>Next renewal: {new Date(sub.renewalDate).toLocaleDateString()}</p>
             {sub.notes && <p className="text-sm bg-base-300 p-2 rounded mt-2 text-content-200 break-words">{sub.notes}</p>}
         </div>
-        <div className="flex justify-end space-x-2 mt-4">
-            <button onClick={() => onEdit(sub)} className="p-2 text-blue-400 hover:text-blue-300"><Icons.Edit size={20} /></button>
-            <button onClick={() => onDelete(sub)} className="p-2 text-red-500 hover:text-red-400"><Icons.Trash2 size={20} /></button>
+        <div className="flex justify-between items-center mt-4">
+            <div className="flex items-center space-x-2">
+                <span className={`text-sm font-semibold ${sub.status === 'active' ? 'text-green-400' : 'text-gray-400'}`}>
+                    {sub.status === 'active' ? 'Active' : 'Inactive'}
+                </span>
+                <button onClick={() => onStatusToggle(sub)} title={`Mark as ${sub.status === 'active' ? 'inactive' : 'active'}`}>
+                    {sub.status === 'active' ? <Icons.ToggleRight size={24} className="text-green-400 cursor-pointer" /> : <Icons.ToggleLeft size={24} className="text-gray-400 cursor-pointer" />}
+                </button>
+            </div>
+            <div className="flex justify-end space-x-2">
+                <button onClick={() => onEdit(sub)} className="p-2 text-blue-400 hover:text-blue-300"><Icons.Edit size={20} /></button>
+                <button onClick={() => onDelete(sub)} className="p-2 text-red-500 hover:text-red-400"><Icons.Trash2 size={20} /></button>
+            </div>
         </div>
     </div>
 );
@@ -158,6 +167,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, subscriptions, onLogout, on
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
   const [sortOption, setSortOption] = useState<SortOption>('renewalDate_asc');
+  const [searchQuery, setSearchQuery] = useState('');
   
   // --- MEMOIZED CALCULATIONS ---
   const { monthlyTotal, annualTotal, alerts, activeSubscriptions } = useMemo(() => {
@@ -189,6 +199,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, subscriptions, onLogout, on
 
   const filteredAndSortedSubscriptions = useMemo(() => {
     let subs = [...subscriptions];
+
+    if (searchQuery) {
+        subs = subs.filter(sub => 
+            sub.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }
+
     if (categoryFilter !== 'all') {
       subs = subs.filter(sub => sub.category === categoryFilter);
     }
@@ -209,7 +226,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, subscriptions, onLogout, on
           return 0;
       }
     });
-  }, [subscriptions, categoryFilter, sortOption]);
+  }, [subscriptions, categoryFilter, sortOption, searchQuery]);
 
   // --- HANDLERS ---
   const handleEdit = (sub: Subscription) => {
@@ -228,13 +245,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, subscriptions, onLogout, on
       }
   };
 
-  const handleSaveSubscription = (subData: any) => {
+  const handleSaveSubscription = (subData: Partial<Subscription>) => {
     if(editingSubscription){
         onUpdateSubscription({ ...editingSubscription, ...subData });
     } else {
-        onAddSubscription(subData);
+        onAddSubscription(subData as Omit<Subscription, 'id' | 'userId' | 'createdAt' | 'status'>);
     }
     setIsModalOpen(false);
+  };
+
+  const handleStatusToggle = (subscription: Subscription) => {
+    const newStatus = subscription.status === 'active' ? 'inactive' : 'active';
+    onUpdateSubscription({ ...subscription, status: newStatus });
   };
   
   // --- RENDER ---
@@ -255,12 +277,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, subscriptions, onLogout, on
               <div className="lg:col-span-2">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                     <h2 className="text-2xl font-bold">Your Subscriptions</h2>
-                    <div className="flex items-center gap-4">
-                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as Category | 'all')} className="bg-base-200 border border-base-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                    <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="bg-base-200 border border-base-300 rounded-md px-3 py-2 pl-9 focus:outline-none focus:ring-2 focus:ring-brand-primary w-full sm:w-auto"
+                            />
+                            <Icons.Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-content-200" size={18} />
+                        </div>
+                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as Category | 'all')} className="bg-base-200 border border-base-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary">
                             <option value="all">All Categories</option>
                             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
-                        <select value={sortOption} onChange={e => setSortOption(e.target.value as SortOption)} className="bg-base-200 border border-base-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                        <select value={sortOption} onChange={e => setSortOption(e.target.value as SortOption)} className="bg-base-200 border border-base-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary">
                             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
                          <button onClick={handleAddNew} className="bg-brand-primary hover:bg-brand-secondary text-white font-bold p-2.5 rounded-full inline-flex items-center">
@@ -273,8 +305,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, subscriptions, onLogout, on
                 ) : filteredAndSortedSubscriptions.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {filteredAndSortedSubscriptions.map(sub => (
-                           <SubscriptionCard key={sub.id} sub={sub} onEdit={handleEdit} onDelete={handleDelete} />
+                           <SubscriptionCard key={sub.id} sub={sub} onEdit={handleEdit} onDelete={handleDelete} onStatusToggle={handleStatusToggle} />
                         ))}
+                    </div>
+                ) : subscriptions.length > 0 ? (
+                    <div className="text-center py-16 px-6 bg-base-200 rounded-lg">
+                        <Icons.Search size={48} className="mx-auto text-content-200 mb-4" />
+                        <h3 className="text-xl font-bold">No Matches Found</h3>
+                        <p className="text-content-200 mt-2">Try adjusting your search or filters.</p>
                     </div>
                 ) : (
                     <EmptyState onAdd={handleAddNew} />

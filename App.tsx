@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Subscription, Toast } from './types';
 import AuthScreen from './components/AuthScreen';
@@ -86,14 +87,16 @@ const App: React.FC = () => {
   }, [currentUser, fetchSubscriptions]);
 
   const handleLogout = async () => {
-    try {
-      await window.storage.delete('subsentry_session');
-      setCurrentUser(null);
-      setSubscriptions([]);
-      addToast('Logged out successfully.', 'success');
-    } catch (error) {
-      console.error('Logout failed:', error);
-      addToast('Logout failed. Please try again.', 'error');
+    if (window.confirm('Are you sure you want to log out?')) {
+      try {
+        await window.storage.delete('subsentry_session');
+        setCurrentUser(null);
+        setSubscriptions([]);
+        addToast('Logged out successfully.', 'success');
+      } catch (error) {
+        console.error('Logout failed:', error);
+        addToast('Logout failed. Please try again.', 'error');
+      }
     }
   };
   

@@ -1,4 +1,5 @@
 
+
 import {
   LogIn,
   UserPlus,
@@ -17,7 +18,10 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  Info
+  Info,
+  Search,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 
 export const Icons = {
@@ -39,4 +43,7 @@ export const Icons = {
   CheckCircle: CheckCircle2,
   XCircle,
   Info,
+  Search,
+  ToggleLeft,
+  ToggleRight,
 };

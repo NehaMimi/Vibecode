@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Subscription, Category, BillingCycle } from '../types';
 import { CATEGORIES, BILLING_CYCLES } from '../constants';
@@ -7,7 +8,7 @@ import { Icons } from './icons';
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (subscription: Omit<Subscription, 'id'|'userId'|'createdAt'|'status'>) => void;
+  onSave: (subscription: Partial<Subscription>) => void;
   subscriptionToEdit: Subscription | null;
 }
 
@@ -18,6 +19,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
   const [renewalDate, setRenewalDate] = useState('');
   const [category, setCategory] = useState<Category>(Category.STREAMING);
   const [notes, setNotes] = useState('');
+  const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -28,6 +30,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
       setRenewalDate(subscriptionToEdit.renewalDate.split('T')[0]);
       setCategory(subscriptionToEdit.category);
       setNotes(subscriptionToEdit.notes);
+      setStatus(subscriptionToEdit.status);
     } else {
       // Reset form
       setName('');
@@ -38,6 +41,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
       setRenewalDate(today.toISOString().split('T')[0]);
       setCategory(Category.STREAMING);
       setNotes('');
+      setStatus('active');
     }
      setError('');
   }, [subscriptionToEdit, isOpen]);
@@ -53,7 +57,12 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
       return;
     }
     setError('');
-    onSave({ name, cost: costValue, billingCycle, renewalDate, category, notes });
+    
+    const payload: Partial<Subscription> = { name, cost: costValue, billingCycle, renewalDate, category, notes };
+    if (subscriptionToEdit) {
+        payload.status = status;
+    }
+    onSave(payload);
   };
   
   if (!isOpen) return null;
@@ -100,6 +109,15 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                       </select>
                   </div>
               </div>
+               {subscriptionToEdit && (
+                    <div>
+                        <label className="block text-sm font-medium text-content-200 mb-1">Status</label>
+                        <select value={status} onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')} className="w-full bg-base-300 rounded-md p-2 border border-transparent focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                )}
               <div>
                   <label className="block text-sm font-medium text-content-200 mb-1">Notes (Optional)</label>
                   <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g., Shared with family" rows={3} className="w-full bg-base-300 rounded-md p-2 border border-transparent focus:outline-none focus:ring-2 focus:ring-brand-primary"></textarea>
