@@ -1,18 +1,16 @@
-// Fix: Add type definition for window.storage to prevent TypeScript errors.
-declare global {
-  interface Window {
-    storage: {
-      get: (key: string) => Promise<{ value: string } | null>;
-      set: (key: string, value: string) => Promise<{ value: string }>;
-      delete: (key: string) => Promise<void>;
-    };
-  }
-}
-
 export interface User {
   id: string;
   email: string;
-  createdAt: string;
+  password?: string; // For handling auth, won't be stored in session state
+}
+
+export enum Category {
+  STREAMING = 'Streaming',
+  SAAS = 'SaaS',
+  HEALTH = 'Health',
+  FOOD = 'Food',
+  ECOMMERCE = 'E-commerce',
+  OTHER = 'Other',
 }
 
 export enum BillingCycle {
@@ -21,26 +19,17 @@ export enum BillingCycle {
   YEARLY = 'Yearly',
 }
 
-export enum Category {
-  STREAMING = 'OTT/Streaming',
-  SAAS = 'Software/SaaS',
-  HEALTH = 'Fitness/Health',
-  FOOD = 'Food Delivery',
-  ECOMMERCE = 'E-commerce',
-  OTHER = 'Other',
-}
-
 export interface Subscription {
   id: string;
   userId: string;
   name: string;
   cost: number;
   billingCycle: BillingCycle;
-  renewalDate: string;
+  renewalDate: string; // ISO string
   category: Category;
-  status: 'active' | 'inactive';
   notes: string;
-  createdAt: string;
+  status: 'active' | 'inactive';
+  createdAt: string; // ISO string
 }
 
 export interface Alert extends Subscription {
@@ -48,7 +37,7 @@ export interface Alert extends Subscription {
   level: 'red' | 'amber';
 }
 
-export type SortOption =
+export type SortOption = 
   | 'renewalDate_asc'
   | 'cost_desc'
   | 'name_asc'
@@ -56,7 +45,7 @@ export type SortOption =
   | 'category_desc';
 
 export interface Toast {
-    id: number;
-    message: string;
-    type: 'success' | 'error';
+  id: number;
+  message: string;
+  type: 'success' | 'error';
 }

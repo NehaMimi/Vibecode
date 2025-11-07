@@ -1,150 +1,123 @@
 import React, { useState } from 'react';
-import { User } from '../types';
 import { Icons } from './icons';
 
 interface AuthScreenProps {
-  onLogin: (user: User) => void;
-  addToast: (message: string, type: 'success' | 'error') => void;
+  onLogin: (email: string, password: string) => Promise<void>;
+  onSignup: (email: string, password: string) => Promise<void>;
+  isLoading: boolean;
 }
 
-const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, addToast }) => {
-  const [isLogin, setIsLogin] = useState(true);
+const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSignup, isLoading }) => {
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const toggleForm = () => {
-    setIsLogin(!isLogin);
+  const handleToggleMode = () => {
+    setAuthMode(prev => prev === 'login' ? 'signup' : 'login');
+    setError('');
+    // Clear fields on mode switch
     setEmail('');
     setPassword('');
     setConfirmPassword('');
   };
-  
-  const handleAuthAction = async () => {
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
     if (!email || !password) {
-        addToast('Email and password are required.', 'error');
-        return;
-    }
-    if (!isLogin && password !== confirmPassword) {
-        addToast('Passwords do not match.', 'error');
-        return;
+      setError('Email and password are required.');
+      return;
     }
     
-    setIsLoading(true);
-    try {
-        const usersData = await window.storage.get('subsentry_users');
-        const users: User[] = usersData?.value ? JSON.parse(usersData.value) : [];
-
-        if (isLogin) {
-            const user = users.find(u => u.email === email);
-            // In a real app, you would check a hashed password.
-            // For this project, we'll assume a direct check is fine.
-            if (user) {
-                await window.storage.set('subsentry_session', JSON.stringify(user));
-                onLogin(user);
-                addToast('Login successful!', 'success');
-            } else {
-                addToast('Invalid credentials.', 'error');
-            }
-        } else { // Signup
-            if (users.some(u => u.email === email)) {
-                addToast('An account with this email already exists.', 'error');
-                return;
-            }
-            const newUser: User = {
-                id: Date.now().toString(),
-                email,
-                createdAt: new Date().toISOString(),
-            };
-            const updatedUsers = [...users, newUser];
-            await window.storage.set('subsentry_users', JSON.stringify(updatedUsers));
-            await window.storage.set('subsentry_session', JSON.stringify(newUser));
-            onLogin(newUser);
-            addToast('Account created successfully!', 'success');
-        }
-    } catch (error) {
-        console.error('Authentication error:', error);
-        addToast(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`, 'error');
-    } finally {
-        setIsLoading(false);
+    if (authMode === 'signup') {
+      if (password !== confirmPassword) {
+        setError('Passwords do not match.');
+        return;
+      }
+      onSignup(email, password).catch(() => { /* Error is handled by toast in App.tsx */});
+    } else {
+      onLogin(email, password).catch(() => { /* Error is handled by toast in App.tsx */});
     }
   };
 
+  const isLogin = authMode === 'login';
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-base-100 p-4">
-      <div className="w-full max-w-md bg-base-200 rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-brand-primary mb-2">SubSentry</h1>
-        <p className="text-center text-content-200 mb-8">{isLogin ? 'Welcome back!' : 'Create your account'}</p>
-        
-        <div className="space-y-6">
-            <div>
-                <label className="text-sm font-medium text-content-200">Email</label>
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="mt-1 w-full px-4 py-2 bg-base-300 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                    placeholder="you@example.com"
-                />
-            </div>
-            <div>
-                 <label className="text-sm font-medium text-content-200">Password</label>
-                 <div className="relative">
-                    <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="mt-1 w-full px-4 py-2 bg-base-300 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                        placeholder="••••••••"
-                    />
-                    <button onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-content-200">
-                      {showPassword ? <Icons.EyeOff size={20} /> : <Icons.Eye size={20} />}
-                    </button>
-                 </div>
-            </div>
-            {!isLogin && (
-                <div>
-                    <label className="text-sm font-medium text-content-200">Confirm Password</label>
-                    <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="mt-1 w-full px-4 py-2 bg-base-300 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                        placeholder="••••••••"
-                    />
-                </div>
-            )}
-            <button
-                onClick={handleAuthAction}
-                disabled={isLoading}
-                className="w-full flex items-center justify-center py-3 px-4 bg-brand-primary hover:bg-brand-secondary text-white font-semibold rounded-md transition duration-300 disabled:bg-opacity-50"
+    <div className="min-h-screen bg-base-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full mx-auto p-8 bg-base-200 rounded-lg shadow-xl">
+        <h1 className="text-3xl font-bold text-center text-brand-primary mb-2">
+          {isLogin ? 'Welcome Back!' : 'Create Your Account'}
+        </h1>
+        <p className="text-content-200 text-center mb-8">
+          {isLogin ? 'Sign in to manage your subscriptions.' : 'Join SubSentry today.'}
+        </p>
+        <form onSubmit={handleSubmit}>
+          {error && <div className="bg-red-900/50 text-red-300 p-3 rounded-md mb-4 text-center">{error}</div>}
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-sm font-medium text-content-200 mb-1">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              className="w-full bg-base-300 rounded-md p-3 border border-transparent focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="password"
+              className="block text-sm font-medium text-content-200 mb-1"
             >
-                {isLoading ? (
-                    <>
-                        <Icons.Loader className="animate-spin mr-2" size={20} />
-                        {isLogin ? 'Signing In...' : 'Creating Account...'}
-                    </>
-                ) : isLogin ? (
-                    <>
-                        <Icons.LogIn className="mr-2" size={20} />
-                        Sign In
-                    </>
-                ) : (
-                    <>
-                        <Icons.UserPlus className="mr-2" size={20} />
-                        Create Account
-                    </>
-                )}
-            </button>
-        </div>
-        
-        <p className="mt-8 text-center text-sm text-content-200">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}
-          <button onClick={toggleForm} className="font-medium text-brand-primary hover:underline ml-2">
-            {isLogin ? 'Sign up' : 'Sign in'}
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              className="w-full bg-base-300 rounded-md p-3 border border-transparent focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            />
+          </div>
+          {!isLogin && (
+            <div className="mb-6">
+              <label
+                htmlFor="confirm-password"
+                className="block text-sm font-medium text-content-200 mb-1"
+              >
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                id="confirm-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="w-full bg-base-300 rounded-md p-3 border border-transparent focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              />
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-bold py-3 px-4 rounded-md transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {isLoading ? <Icons.Loader className="animate-spin" /> : (isLogin ? 'Sign In' : 'Create Account')}
+          </button>
+        </form>
+        <p className="text-center text-sm text-content-200 mt-6">
+          {isLogin ? "Don't have an account? " : "Already have an account? "}
+          <button onClick={handleToggleMode} className="font-semibold text-brand-secondary hover:underline">
+            {isLogin ? 'Sign Up' : 'Sign In'}
           </button>
         </p>
       </div>
